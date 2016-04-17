@@ -13,7 +13,7 @@ z_size = 1024;
 % Define the parameters for the denoising
 method_denoising = 'nlm';
 kernelratio = 7;
-windowratio = 1;
+windowratio = 11;
 filterstrength = 0.08;
 
 % Define the method for flattening
