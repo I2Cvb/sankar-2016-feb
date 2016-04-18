@@ -23,15 +23,17 @@ data_label = [ raw_data{ 2:end, 2 } ];
 idx_class_pos = find( data_label ==  1 );
 idx_class_neg = find( data_label == -1 );
 
-% Number of mixture components
-gmm_k = 8;
+% Parameter for the GMM
+rng(1);
+gmm_k = 15;
+options = statset('MaxIter', 1000);
 
 % Mahalanobis threshold
-pca_components = 300;
+pca_components = 500;
 mahal_thresh = chi2inv(0.95, pca_components);
 
 % Number of abnormal slices tolerated
-n_slices_thres = 32;
+n_slices_thres = 15;
 
 % Number of slice per volume
 x_size = 128;
@@ -50,13 +52,17 @@ for idx_cv_lpo = 1:length(idx_class_neg)
     load(strcat(data_directory, filename_cv));
 
     % Apply a GMM learning on the training set
-    gmm_model = fitgmdist(training_data, gmm_k);
+    gmm_model = fitgmdist(training_data, gmm_k, ...
+                          'Options', options, ...
+                          'CovarianceType', 'diagonal', ...
+                          'RegularizationValue', 0.001, ...
+                          'Replicated', 10);
 
     test_vol = 1;
     % Test the gmm_model and count the number of outliers
     for test_id = 1 : x_size : size(testing_data,1)
         % Extract the data to use in the gmm model
-        t_data = testing_data(test_id : test_id + x_size - 1,:));
+        t_data = testing_data(test_id : test_id + x_size - 1,:);
         
         % Compute the Mahalanobis distance for all the slices
         mahal_dist = mahal(gmm_model, t_data);
@@ -65,7 +71,11 @@ for idx_cv_lpo = 1:length(idx_class_neg)
         mahal_dist_near = min(mahal_dist, [], 2);
 
         % Check how many slices are abnormal
-        n_abnormal_slices = nnz(mahal_dist_near > mahal_thresh);
+        % Apply a median filter in order to reject the case that
+        % you do not have consecutive abnormal slices
+        n_abnormal_slices = nnz(medfilt1(single(mahal_dist_near > mahal_thresh)));
+        
+        disp(['Number of estimated outliers: ', num2str(n_abnormal_slices)]);
         
         % Affect the predicted label
         if n_abnormal_slices > n_slices_thres

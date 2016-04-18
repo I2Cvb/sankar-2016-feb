@@ -24,7 +24,7 @@ idx_class_pos = find( data_label ==  1 );
 idx_class_neg = find( data_label == -1 );
 
 % Number of components for the PCA
-pca_components = 300;
+pca_components = 500;
 
 % poolobj = parpool('local', 48);
 
